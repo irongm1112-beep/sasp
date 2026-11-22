@@ -9,6 +9,7 @@ window.SASP_CONFIG = {
     projectId: "sasp-5aa45",
     storageBucket: "sasp-5aa45.firebasestorage.app",
     messagingSenderId: "902691056974",
-    appId: "1:902691056974:web:5795f7b08444f83320c21f"
+    appId: "1:902691056974:web:5795f7b08444f83320c21f",
+    measurementId: "G-FDJ67RVM7P"
   }
 };
