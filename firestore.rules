@@ -1,0 +1,33 @@
+rules_version = '2';
+// Remplace OWNER_EMAIL ci-dessous par ton e-mail Google (en minuscules), puis clique sur "Publier".
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signed() { return request.auth != null; }
+    function isOwner() { return signed() && request.auth.token.email != null && request.auth.token.email.lower() == 'OWNER_EMAIL'; }
+    function hasRole() { return signed() && exists(/databases/$(database)/documents/roles/$(request.auth.uid)); }
+    function roleIn(list) { return hasRole() && get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role in list; }
+    function admin()  { return isOwner() || roleIn(['owner','editor']); }
+    function writer() { return isOwner() || roleIn(['owner','editor','contrib']); }
+    function reader() { return isOwner() || roleIn(['owner','editor','contrib','viewer']); }
+
+    match /roles/{uid} {
+      allow get: if signed() && (request.auth.uid == uid || reader());
+      allow list: if reader();
+      allow create: if signed() && request.auth.uid == uid
+                    && (request.resource.data.role == 'pending' || (isOwner() && request.resource.data.role == 'owner'));
+      allow update: if (isOwner())
+                    || (admin() && request.resource.data.role in ['pending','refuse','viewer','contrib','editor'] && resource.data.role != 'owner')
+                    || (signed() && request.auth.uid == uid && request.resource.data.role == resource.data.role);
+      allow delete: if isOwner() || (admin() && resource.data.role != 'owner');
+    }
+    match /membres/{uid} {
+      allow read: if admin() || (signed() && request.auth.uid == uid);
+      allow write: if admin() || (signed() && request.auth.uid == uid && writer());
+    }
+    match /agents/{id}  { allow read: if reader(); allow write: if writer(); }
+    match /config/{id}  { allow read: if reader(); allow write: if writer(); }
+    match /eow/{id}     { allow read: if reader(); allow write: if writer(); }
+    match /partis/{id}  { allow read: if reader(); allow write: if writer(); }
+    match /semaines/{w}/heures/{m} { allow read: if reader(); allow write: if writer(); }
+  }
+}
