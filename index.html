@@ -357,6 +357,7 @@ body.both .duo .jcrown{display:block}
 .eowt{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px;background:#0a0a0a;color:#fff;white-space:nowrap}
 .ewdur{display:grid;grid-template-columns:80px minmax(0,1fr);gap:6px}.ewdur input{width:100%}
 .ewbtn{background:#0a0a0a!important;color:#fff!important;border-color:#0a0a0a!important}
+#tbl tbody tr.mine{box-shadow:inset 4px 0 0 var(--acc);background:color-mix(in srgb,var(--acc) 10%,var(--panel))}
 .saved{font-size:13px;color:var(--blue);min-height:1em}
 .empty{padding:28px;text-align:center;color:var(--mute)}
 dialog{max-height:92vh;overflow:auto;border:0;border-radius:12px;padding:0;background:var(--panel);color:var(--ink);width:min(520px,94vw);box-shadow:0 20px 60px rgba(0,0,0,.4)}
@@ -521,7 +522,7 @@ label{display:grid;gap:6px;font-weight:600;font-size:15px}
     <div class="glist" id="tshould"></div>
     <div id="tconn"><h3 class="dt" style="margin-top:22px">Personnes connectées</h3>
     <div class="glist" id="tlist"></div>
-    <p class="hint">Liste des personnes qui se sont connectées au moins une fois, avec leur niveau d’accès actuel. Pour donner, changer ou retirer un accès : bouton « Accès » en bas à gauche.</p></div>
+    <p class="hint">Liste des personnes qui se sont connectées au moins une fois, avec leur niveau d’accès actuel. Les accès viennent des rôles Discord du serveur SASP : pour les changer, modifie les rôles sur Discord.</p></div>
   </div>
   <div class="wrap" id="expBox" hidden style="margin-top:22px">
     <h3 class="dt">Sauvegarde / transfert des données</h3>
@@ -759,7 +760,7 @@ function applyGradeRights(){
   cfgRO=!cfgOk;document.body.classList.toggle('cro',cfgRO);if(cfgOk)openTeam(true);
   gradeLock=lock;readOnly=lock;
   $('addBtn').disabled=lock;document.body.classList.toggle('ro',lock);renderRates();renderPrimes();renderDivAdmin();
-  setStatus(lock?'Consultation seule — les modifications sont réservées au corps de supervision et à l’état-major.':cfgOk?'À jour en direct — en tant que supervision / état-major, tu peux tout modifier : agents, heures, grades, primes et divisions.':'À jour en direct — tu peux gérer les agents et les heures ; grades, primes et divisions sont réservés aux responsables.',lock);
+  setStatus(lock?'Tu peux remplir tes heures et ton IBAN sur ta ligne (surlignée). Le reste est réservé au corps de supervision et à l’état-major.':cfgOk?'À jour en direct — en tant que supervision / état-major, tu peux tout modifier : agents, heures, grades, primes et divisions.':'À jour en direct — tu peux gérer les agents et les heures ; grades, primes et divisions sont réservés aux responsables.',lock);
   renderRows();
 }
 let vicShown=false;
@@ -835,12 +836,12 @@ function live(){dirty=dirty||editing_();const t=new Date();$('liveT').textConten
 document.addEventListener('focusout',()=>setTimeout(()=>{if(dirty&&!editing_()){dirty=false;renderRows();renderRates();renderPrimes();renderDivAdmin();renderBoard()}},0));
 function renderRows(){
   const list=visible(),dis=readOnly?' disabled':'';
-  $('rows').innerHTML=list.length?list.map(a=>{const d=hrs(a.mat),p=!!(hours[a.mat]||{}).paye;
-    return `<tr id="r${a.mat}" data-r="${a.mat}"><td class="n tot c-mat">${a.mat}</td>
+  $('rows').innerHTML=list.length?list.map(a=>{const d=hrs(a.mat),p=!!(hours[a.mat]||{}).paye,own=gradeLock&&a.mat===me.mat&&!a.ghost,odis=readOnly&&!own?' disabled':'';
+    return `<tr id="r${a.mat}" data-r="${a.mat}"${own?' class="mine"':''}><td class="n tot c-mat">${a.mat}</td>
     <td class="c-nom"><input class="fi nm" data-f="nom" data-a="${a.mat}" value="${esc(a.nom)}" maxlength="60" aria-label="Nom"${dis||(a.ghost?' disabled':'')}>
-      <div class="ibrow"><input class="fi ib" data-f="iban" data-a="${a.mat}" value="${esc(a.iban)}" maxlength="40" placeholder="IBAN à renseigner" aria-label="IBAN"${dis||(a.ghost?' disabled':'')}>${a.iban?`<button type="button" class="cp" data-cp="${esc(a.iban)}">Copier</button>`:''}</div>${divLine(a)}</td>
+      <div class="ibrow"><input class="fi ib" data-f="iban" data-a="${a.mat}" value="${esc(a.iban)}" maxlength="40" placeholder="IBAN à renseigner" aria-label="IBAN"${odis||(a.ghost?' disabled':'')}>${a.iban?`<button type="button" class="cp" data-cp="${esc(a.iban)}">Copier</button>`:''}</div>${divLine(a)}</td>
     <td class="c-gr k${corpsOf(a.grade)}"><select class="fi" data-f="grade" data-a="${a.mat}" aria-label="Grade"${dis||(a.ghost?' disabled':'')}>${GRADES.concat(GRADES.includes(a.grade)?[]:[a.grade]).map(g=>`<option${g===a.grade?' selected':''}>${esc(g)}</option>`).join('')}</select>${gradeAt(a)!==a.grade?`<div class="gdep gw">cette semaine : ${esc(gradeAt(a))}</div>`:''}${a.gradeDepuis?`<div class="gdep" title="Au grade de ${esc(a.grade)} depuis le ${fmtD(new Date(a.gradeDepuis+'T12:00:00'))}">depuis ${depuis(a.gradeDepuis)}</div>`:''}</td>
-    ${d.map((v,i)=>`<td class="c-d" data-day="${DAYS[i]}"><input class="h" type="text" inputmode="decimal" data-h="${a.mat}" data-i="${i}" value="${v||''}" placeholder="–" aria-label="${esc(a.nom)} ${DAYS[i]}"${dis}></td>`).join('')}
+    ${d.map((v,i)=>`<td class="c-d" data-day="${DAYS[i]}"><input class="h" type="text" inputmode="decimal" data-h="${a.mat}" data-i="${i}" value="${v||''}" placeholder="–" aria-label="${esc(a.nom)} ${DAYS[i]}"${odis}></td>`).join('')}
     <td class="n tot c-h" data-t="${a.mat}">${sum(d)}</td><td class="c-pr">${`<label class="prm gui" title="Guignol de la semaine (pas une prime)"><input class="chk" type="checkbox" data-gui="${a.mat}"${(hours[a.mat]||{}).guignol?' checked':''}${dis}><span class="pc">GUI</span><span class="pn">Guignol de la semaine</span></label>`}${PRIMES.map(x=>`<label class="prm" title="${esc(x.nom)}${x.montant?' · '+money(x.montant):''}"><input class="chk" type="checkbox" data-pr="${a.mat}" data-pid="${esc(x.id)}"${((hours[a.mat]||{}).primes||{})[x.id]?' checked':''}${dis}><span class="pc">${esc(x.court||x.nom)}</span><span class="pn">${esc(x.nom)}</span></label>`).join('')}</td><td class="n c-s" data-s="${a.mat}">${money(salOf(a,sum(d)))}</td>
     <td class="c-p"><label class="pl"><input class="chk" type="checkbox" data-p="${a.mat}"${p?' checked':''}${dis}><span>Payé</span></label></td>
     <td class="acts c-a">${readOnly||a.ghost?'':`<button type="button" data-e="${a.mat}">Fiche</button>`}</td></tr>`}).join('')
@@ -955,7 +956,8 @@ const wkPath=()=>`semaines/${iso(week)}/heures`;
 function saveHours(m){queueWrite(wkPath()+'/'+m,()=>{const h=hours[m]||{};const o={mat:m,paye:!!h.paye,guignol:!!h.guignol,primes:{...(h.primes||{})}};for(let i=0;i<7;i++)o['d'+i]=+h['d'+i]||0;return o})}
 
 $('rows').addEventListener('change',e=>{
-  const t=e.target;if(!db||readOnly)return;
+  const t=e.target;if(!db)return;
+  if(readOnly){const m=+(t.dataset.h||t.dataset.a||0);if(!(gradeLock&&m===me.mat&&(t.dataset.h||t.dataset.f==='iban')))return}
   if(t.dataset.f){const m=+t.dataset.a,a=byMat().get(m);if(!a)return;let v=t.value.trim().replace(/\s+/g,t.dataset.f==='iban'?'':' ');if(t.dataset.f==='iban')v=v.toUpperCase();
     if(t.dataset.f==='nom'&&!v){t.value=a.nom;flash('Le nom ne peut pas être vide.',true);return}
     t.value=v;if(v===a[t.dataset.f])return;if(t.dataset.f==='grade'){a.histo=[...(a.histo||[]),{grade:a.grade,fin:iso(new Date())}];a.gradeDepuis=iso(new Date())}a[t.dataset.f]=v;totals();
@@ -1262,7 +1264,7 @@ $('wLbl').textContent=weekLabel();renderRates();renderPrimes();renderDivAdmin();
   me.role=role;
   if(U&&role){try{me.uid=await U.id()}catch(e){}}
   if(me.uid){
-    try{const mm=await U.me();$('gWho').textContent=mm.name?`Compte Google : ${mm.name}`:''}catch(e){}
+    try{const mm=await U.me();$('gWho').textContent=mm.name?`Compte Discord : ${mm.name}`:''}catch(e){}
     let synced=false;
     db.doc('membres/'+me.uid).onSnapshot(sn=>{
       const x=sn.exists?sn.data():null;
@@ -1278,7 +1280,7 @@ $('wLbl').textContent=weekLabel();renderRates();renderPrimes();renderDivAdmin();
   db.collection('agents').onSnapshot(snap=>{live();
     agents=snap.docs.map(d=>normAgent(d.data()||{},d.id)).filter(a=>a.mat>0&&a.nom);
     if(!snap.metadata.fromCache)purgeDeparts();
-    if(!snap.metadata.fromCache){clearTimeout(timer);setStatus(gradeLock?'Consultation seule — les modifications sont réservées au corps de supervision et à l’état-major.':readOnly?'Consultation seule.':cfgRO?'À jour en direct — tu peux gérer les agents et les heures ; grades, primes et divisions sont réservés aux responsables.':'À jour en direct — chaque agent peut saisir ses heures, tout le monde voit les changements.')}
+    if(!snap.metadata.fromCache){clearTimeout(timer);setStatus(gradeLock?'Tu peux remplir tes heures et ton IBAN sur ta ligne (surlignée). Le reste est réservé au corps de supervision et à l’état-major.':readOnly?'Consultation seule.':cfgRO?'À jour en direct — tu peux gérer les agents et les heures ; grades, primes et divisions sont réservés aux responsables.':'À jour en direct — chaque agent peut saisir ses heures, tout le monde voit les changements.')}
     render();renderStar();renderRates();renderPrimes();renderDivAdmin();if($('dlg').open&&!editing)renderChips();if($('dlg').open&&editing){renderBlames();renderDep();renderPromo()}if(!$('gate').hidden){fillGate();if(!$('gNew').hidden){const v=$('gMat').value;fillNew();if([...$('gMat').options].some(o=>o.value===v))$('gMat').value=v}}renderMe();if(!$('equipe').hidden)renderTeam();
   },err=>{clearTimeout(timer);setStatus(err.code==='revoked'?'Accès retiré.':'Connexion perdue avec la base. Recharge la page plus tard.',true)});
   db.doc('config/taux').onSnapshot(s=>{live();if(s.exists&&!gradesFromDb){rates={...DEF_RATE,...s.data()};renderRates();totals()}},()=>{});
